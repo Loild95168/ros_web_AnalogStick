@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template
 from flask_socketio import SocketIO
-import sys
+
 
 
 app = Flask(__name__)
@@ -8,8 +8,8 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 @app.route('/')
 def index():
-    import syz
-    print("有人造訪首頁", file=syz.stderr)
+    import sys
+    print("有人造訪首頁", file=sys.stderr)
     return render_template('index.html')  # 控制介面
 
 @app.route('/control', methods=['POST'])
