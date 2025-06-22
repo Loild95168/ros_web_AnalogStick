@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>控制 ROS 無人車</title>
+</head>
+<body>
+  <h2>遠端控制</h2>
+  <button onclick="send('forward')">前進</button>
+  <button onclick="send('back')">後退</button>
+  <button onclick="send('stop')">停止</button>
+
+  <script>
+    function send(cmd) {
+      fetch('/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: cmd })
+      });
+    }
+  </script>
+</body>
+</html>

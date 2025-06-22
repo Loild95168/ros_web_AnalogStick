@@ -1,0 +1,20 @@
+from flask import Flask, request, render_template
+from flask_socketio import SocketIO
+
+app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+@app.route('/')
+def index():
+    return render_template('index.html')  # 控制介面
+
+@app.route('/control', methods=['POST'])
+def control():
+    data = request.json
+    print("手機送出指令：", data)
+    socketio.emit('control', data)  # 廣播給 ROS 主機
+    return {'status': 'ok'}
+
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', port=5000)
+
