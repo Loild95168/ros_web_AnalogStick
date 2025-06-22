@@ -9,7 +9,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 @app.route('/')
 def index():
     import syz
-    print("有人造訪首頁", file=syz.stderr)
+    print("有人造訪首頁", file=syz.stderr)
     return render_template('index.html')  # 控制介面
 
 @app.route('/control', methods=['POST'])
