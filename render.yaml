@@ -2,8 +2,8 @@ services:
   - type: web
     name: ros-remote-control
     env: python
-    buildCommand: ""
-    startCommand: python3 server.py
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python3 server.py"
     envVars:
       - key: FLASK_ENV
         value: production
