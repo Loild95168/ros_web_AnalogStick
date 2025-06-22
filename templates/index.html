@@ -5,11 +5,24 @@
 </head>
 <body>
   <h2>遠端控制</h2>
+
+  <div id="time" style="font-size: 18px; margin-bottom: 10px;"></div>
+
   <button onclick="send('forward')">前進</button>
   <button onclick="send('back')">後退</button>
   <button onclick="send('stop')">停止</button>
 
   <script>
+    function updateTime() {
+      const now = new Date();
+      const formatted = now.toLocaleString();
+      document.getElementById('time').innerText = "現在時間：" + formatted;
+    }
+
+    // 每秒更新時間
+    setInterval(updateTime, 1000);
+    updateTime(); // 先立即更新一次
+
     function send(cmd) {
       fetch('https://ros-web-control.onrender.com/control', {
         method: 'POST',
@@ -21,6 +34,6 @@
         alert("已送出指令：" + cmd);
       });
     }
-  </script>  
+  </script>
 </body>
 </html>
