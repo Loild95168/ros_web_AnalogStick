@@ -8,12 +8,11 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 @app.route('/')
 def index():
-    import sys
-    print("有人造訪首頁", file=sys.stderr)
     return render_template('index.html')  # 控制介面
 
 @app.route('/control', methods=['POST'])
 def control():
+    import sys
     data = request.json
     print("手機送出指令：", data, file=sys.stderr)
     socketio.emit('control', data)  # 廣播給 ROS 主機
