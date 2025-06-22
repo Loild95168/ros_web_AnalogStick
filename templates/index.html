@@ -11,7 +11,7 @@
 
   <script>
     function send(cmd) {
-      fetch('/control', {
+      fetch('https://ros-web-control.onrender.com/control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: cmd })
