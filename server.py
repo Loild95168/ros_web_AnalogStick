@@ -14,6 +14,10 @@ def control():
     print("手機送出指令：", data)
     socketio.emit('control', data)  # 廣播給 ROS 主機
     return {'status': 'ok'}
+@app.before_request
+def log_request_info():
+    print(f"Request: {request.method} {request.path}")
+    
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
