@@ -1,5 +1,7 @@
 from flask import Flask, request, render_template
 from flask_socketio import SocketIO
+import sys
+
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -11,7 +13,7 @@ def index():
 @app.route('/control', methods=['POST'])
 def control():
     data = request.json
-    print("手機送出指令：", data)
+    print("手機送出指令：", data, file=sys.stderr)
     socketio.emit('control', data)  # 廣播給 ROS 主機
     return {'status': 'ok'}
 @app.before_request
