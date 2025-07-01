@@ -15,6 +15,7 @@ def index():
 def control():
     import sys
     data = request.json
+    command = data.get('command')
     print("手機送出指令：", data, file=sys.stderr)
     socketio.emit('control', data)
     return jsonify({
