@@ -13,7 +13,7 @@ def index():
 @app.route('/control', methods=['POST'])
 def control():
     import sys
-     data = request.json
+    data = request.json
     print("手機送出指令：", data, file=sys.stderr)
     socketio.emit('control', data)
     return {
