@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO
-from datetime import datetime, timezone  # ✅ 修正這裡！
+from datetime import datetime, timezone, timedelta  # ✅ 加入 timedelta
 
 import sys
 import os
@@ -16,15 +16,45 @@ def index():
 def control():
     data = request.json
     command = data.get('command')
-    print("📲 手機送出指令：", data, file=sys.stderr)
+    client_time_str = data.get('client_time')  # ✅ 手機端送出的時間
 
-    # 推送指令給 WebSocket Client
+    # 取得 server 端 UTC 時間
+    server_time = datetime.now(timezone.utc)
+
+    # 計算延遲
+    delay_ms = None
+    if client_time_str:
+        try:
+            # 將 Z 結尾轉成 timezone-aware datetime
+            client_time = datetime.fromisoformat(client_time_str.replace('Z', '+00:00'))
+            delay = server_time - client_time
+            delay_ms = round(delay.total_seconds() * 1000, 3)  # 毫秒
+        except Exception as e:
+            print("⚠️ 無法解析 client_time:", e, file=sys.stderr)
+
+    # 台灣時間（+08:00）
+    taiwan_tz = timezone(timedelta(hours=8))
+    taiwan_str = server_time.astimezone(taiwan_tz).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+
+    # 印出 log
+    print("📲 手機送出指令：", data, file=sys.stderr)
+    if client_time_str:
+        print("📡 client_time（手機）：", client_time_str, file=sys.stderr)
+    print("🕒 server_time（接收）：", server_time.isoformat(), file=sys.stderr)
+    print("🕒 台灣時間：", taiwan_str, file=sys.stderr)
+    if delay_ms is not None:
+        print(f"⏱ 指令延遲：{delay_ms} ms", file=sys.stderr)
+
+    # 發送到 WebSocket client
     socketio.emit('control', data)
 
     return jsonify({
         'status': 'ok',
         'received_command': command,
-        'server_time': datetime.now(timezone.utc).isoformat()
+        'client_time': client_time_str,
+        'server_time_utc': server_time.isoformat(),
+        'server_time_taiwan': taiwan_str,
+        'delay_ms': delay_ms
     })
 
 @app.before_request
