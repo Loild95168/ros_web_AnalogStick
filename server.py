@@ -13,10 +13,13 @@ def index():
 @app.route('/control', methods=['POST'])
 def control():
     import sys
-    data = request.json
+     data = request.json
     print("手機送出指令：", data, file=sys.stderr)
-    socketio.emit('control', data)  # 廣播給 ROS 主機
-    return {'status': 'ok'}
+    socketio.emit('control', data)
+    return {
+        'status': 'ok',
+        'server_time': datetime.utcnow().isoformat() + 'Z'
+    }
 @app.before_request
 def log_request_info():
     print(f"Request: {request.method} {request.path}")

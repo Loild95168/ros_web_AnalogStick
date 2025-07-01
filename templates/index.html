@@ -7,6 +7,7 @@
   <h2>遠端控制</h2>
 
   <div id="time" style="font-size: 18px; margin-bottom: 10px;"></div>
+  <div id="latency" style="font-size: 16px; color: green; margin-bottom: 10px;"></div>
 
   <button onclick="send('forward')">前進</button>
   <button onclick="send('back')">後退</button>
@@ -21,9 +22,11 @@
 
     // 每秒更新時間
     setInterval(updateTime, 1000);
-    updateTime(); // 先立即更新一次
+    updateTime();
 
     function send(cmd) {
+      const t0 = performance.now();  // 傳送前時間戳
+
       fetch('https://ros-web-control.onrender.com/control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -31,6 +34,9 @@
       })
       .then(res => res.json())
       .then(data => {
+        const t1 = performance.now();  // 接收回應後時間戳
+        const latency = Math.round(t1 - t0);
+        document.getElementById('latency').innerText = `傳輸延遲：約 ${latency} ms`;
         alert("已送出指令：" + cmd);
       });
     }
