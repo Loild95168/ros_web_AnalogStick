@@ -20,24 +20,36 @@
       document.getElementById('time').innerText = "現在時間：" + formatted;
     }
 
-    // 每秒更新時間
     setInterval(updateTime, 1000);
     updateTime();
 
     function send(cmd) {
-      const t0 = performance.now();  // 傳送前時間戳
+      const t0 = performance.now();
+      const client_time = new Date().toISOString();
 
       fetch('https://ros-web-control.onrender.com/control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: cmd })
+        body: JSON.stringify({
+          command: cmd,
+          client_time: client_time
+        })
       })
       .then(res => res.json())
       .then(data => {
-        const t1 = performance.now();  // 接收回應後時間戳
+        const t1 = performance.now();
         const latency = Math.round(t1 - t0);
-        document.getElementById('latency').innerText = `傳輸延遲：約 ${latency} ms`;
-        alert("已送出指令：" + cmd);
+
+        let info = `📡 傳輸延遲（client）：${latency} ms`;
+        if (data.delay_ms !== null) {
+          info += `\n⏱ 指令延遲（server 計算）：${data.delay_ms} ms`;
+        }
+        if (data.server_time_taiwan) {
+          info += `\n🕒 伺服器時間（台灣）：${data.server_time_taiwan}`;
+        }
+
+        document.getElementById('latency').innerText = info;
+        alert("✅ 已送出指令：" + cmd);
       });
     }
   </script>
