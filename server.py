@@ -17,10 +17,11 @@ def control():
     data = request.json
     print("手機送出指令：", data, file=sys.stderr)
     socketio.emit('control', data)
-    return {
-        'status': 'ok',
-        'server_time': datetime.utcnow().isoformat() + 'Z'
-    }
+    return jsonify({
+    'status': 'ok',
+    'received_command': command,
+    'server_time': datetime.now(timezone.utc).isoformat()
+})
 @app.before_request
 def log_request_info():
     print(f"Request: {request.method} {request.path}")
@@ -28,4 +29,9 @@ def log_request_info():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
+
+
+
+
+
 
