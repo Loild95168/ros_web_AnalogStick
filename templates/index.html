@@ -1,55 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>控制 ROS 無人車</title>
 </head>
 <body>
-  <h2>遠端控制</h2>
+  <h2>遠端控制介面</h2>
 
-  <div id="time" style="font-size: 18px; margin-bottom: 10px;"></div>
-  <div id="latency" style="font-size: 16px; color: green; margin-bottom: 10px;"></div>
+  <div>
+    <button onclick="send('forward')">前進</button>
+    <button onclick="send('backward')">後退</button>
+    <button onclick="send('stop')">停止</button>
+  </div>
 
-  <button onclick="send('forward')">前進</button>
-  <button onclick="send('back')">後退</button>
-  <button onclick="send('stop')">停止</button>
+  <hr>
+
+  <div id="clientTime" style="font-size: 16px; margin-top: 10px;"></div>
+  <div id="serverTime" style="font-size: 16px;"></div>
+  <div id="delay" style="font-size: 16px;"></div>
 
   <script>
-    function updateTime() {
-      const now = new Date();
-      const formatted = now.toLocaleString();
-      document.getElementById('time').innerText = "現在時間：" + formatted;
+    function getFormattedTime(date) {
+      return date.getFullYear() + '-' +
+             String(date.getMonth() + 1).padStart(2, '0') + '-' +
+             String(date.getDate()).padStart(2, '0') + ' ' +
+             String(date.getHours()).padStart(2, '0') + ':' +
+             String(date.getMinutes()).padStart(2, '0') + ':' +
+             String(date.getSeconds()).padStart(2, '0') + '.' +
+             String(date.getMilliseconds()).padStart(3, '0');
     }
 
-    setInterval(updateTime, 1000);
-    updateTime();
-
     function send(cmd) {
-      const t0 = performance.now();
-      const client_time = new Date().toISOString();
+      const now = new Date();
+      const clientTime = now.toISOString();  // 送出給伺服器（UTC）
+      const localDisplay = getFormattedTime(now);  // 顯示用（本地時間）
 
       fetch('https://ros-web-control.onrender.com/control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          command: cmd,
-          client_time: client_time
-        })
+        body: JSON.stringify({ command: cmd, client_time: clientTime })
       })
       .then(res => res.json())
       .then(data => {
-        const t1 = performance.now();
-        const latency = Math.round(t1 - t0);
-
-        let info = `📡 傳輸延遲（client）：${latency} ms`;
-        if (data.delay_ms !== null) {
-          info += `\n⏱ 指令延遲（server 計算）：${data.delay_ms} ms`;
-        }
-        if (data.server_time_taiwan) {
-          info += `\n🕒 伺服器時間（台灣）：${data.server_time_taiwan}`;
-        }
-
-        document.getElementById('latency').innerText = info;
-        alert("✅ 已送出指令：" + cmd);
+        document.getElementById('clientTime').innerText = "📲 手機送出時間：" + localDisplay;
+        document.getElementById('serverTime').innerText = "🕒 台灣伺服器時間：" + data.server_time_taiwan;
+        document.getElementById('delay').innerText = "⏱ 指令延遲：" + data.delay_ms + " 毫秒";
       });
     }
   </script>
