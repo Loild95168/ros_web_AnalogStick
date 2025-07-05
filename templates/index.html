@@ -1,5 +1,5 @@
 <script>
-  const socket = io(); // 自動連線至目前頁面來源
+  const socket = io();
   const zone = document.getElementById("joystickZone");
   const status = document.getElementById("status");
 
@@ -13,18 +13,20 @@
   let lastEmitTime = 0;
   const throttleInterval = 100; // 每 100ms 傳一次
 
+  const maxSpeed = 2.0;
+
   manager.on('move', function(evt, data) {
     const now = Date.now();
-    if (now - lastEmitTime < throttleInterval) return;  // ✅ 節流
+    if (now - lastEmitTime < throttleInterval) return;
     lastEmitTime = now;
 
     const angle = data.angle.radian;
     const distance = data.distance;
-    const maxSpeed = 2.0;
     const speedFactor = Math.min(distance / 100, 1.0);
 
-    const linear_x = Math.cos(angle) * maxSpeed * speedFactor;
-    const angular_z = -Math.sin(angle) * maxSpeed * speedFactor;
+    // ✅ 類比搖桿邏輯修正
+    const linear_x = Math.sin(angle) * maxSpeed * speedFactor;
+    const angular_z = -Math.cos(angle) * maxSpeed * speedFactor;
 
     socket.emit("analog_control", {
       linear: linear_x.toFixed(2),
