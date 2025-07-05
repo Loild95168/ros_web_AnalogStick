@@ -1,52 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>控制 ROS 無人車</title>
+  <meta charset="UTF-8">
+  <title>小烏龜搖桿控制</title>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
+  <style>
+    #joystickZone {
+      width: 300px; height: 300px;
+      margin: auto; background: #f3f3f3; border-radius: 50%;
+    }
+    body { text-align: center; font-family: sans-serif; }
+  </style>
 </head>
 <body>
-  <h2>遠端控制介面</h2>
-
-  <div>
-    <button onclick="send('forward')">前進</button>
-    <button onclick="send('backward')">後退</button>
-    <button onclick="send('stop')">停止</button>
-  </div>
-
-  <hr>
-
-  <div id="clientTime" style="font-size: 16px; margin-top: 10px;"></div>
-  <div id="serverTime" style="font-size: 16px;"></div>
-  <div id="delay" style="font-size: 16px;"></div>
+  <h2>🐢 小烏龜搖桿控制</h2>
+  <div id="joystickZone"></div>
+  <p id="status">等待操作</p>
 
   <script>
-    function getFormattedTime(date) {
-      return date.getFullYear() + '-' +
-             String(date.getMonth() + 1).padStart(2, '0') + '-' +
-             String(date.getDate()).padStart(2, '0') + ' ' +
-             String(date.getHours()).padStart(2, '0') + ':' +
-             String(date.getMinutes()).padStart(2, '0') + ':' +
-             String(date.getSeconds()).padStart(2, '0') + '.' +
-             String(date.getMilliseconds()).padStart(3, '0');
-    }
+    const socket = io(); // 預設連線到 render server
+    const zone = document.getElementById("joystickZone");
+    const status = document.getElementById("status");
+    let cooldown = false;
 
-    function send(cmd) {
-      const now = new Date();
-      const clientTime = now.toISOString();  // 送出給伺服器（UTC）
-      const localDisplay = getFormattedTime(now);  // 顯示用（本地時間）
+    const manager = nipplejs.create({
+      zone: zone,
+      mode: "static",
+      position: { left: "50%", top: "50%" },
+      color: "blue"
+    });
 
-      fetch('https://ros-web-control.onrender.com/control', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: cmd, client_time: clientTime })
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('clientTime').innerText = "📲 手機送出時間：" + localDisplay;
-        document.getElementById('serverTime').innerText = "🕒 台灣伺服器時間：" + data.server_time_taiwan;
-        document.getElementById('delay').innerText = "⏱ 指令延遲：" + data.delay_ms + " 毫秒";
-      });
-    }
+    manager.on('move', function(evt, data) {
+      if (cooldown) return;
+
+      let direction = "";
+      const angle = data.angle.degree;
+
+      if (angle >= 45 && angle < 135) direction = "forward";
+      else if (angle >= 135 && angle < 225) direction = "left";
+      else if (angle >= 225 && angle < 315) direction = "backward";
+      else direction = "right";
+
+      socket.emit("control", { command: direction, client_time: new Date().toISOString() });
+      status.innerText = "控制：" + direction;
+      cooldown = true;
+      setTimeout(() => cooldown = false, 300);
+    });
+
+    manager.on("end", () => {
+      socket.emit("control", { command: "stop", client_time: new Date().toISOString() });
+      status.innerText = "控制：停止";
+    });
   </script>
 </body>
 </html>
