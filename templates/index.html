@@ -32,21 +32,24 @@
     });
 
     manager.on('move', function(evt, data) {
-      if (cooldown) return;
+  const angle = data.angle.radian;  // 弧度（比 degree 更好算 sin/cos）
+  const distance = data.distance;   // 0 ~ 最大半徑（約 100~150）
 
-      let direction = "";
-      const angle = data.angle.degree;
+  // 根據距離調整速度倍率（最大速度 2.0）
+  const maxSpeed = 2.0;
+  const speedFactor = Math.min(distance / 100, 1.0);  // 0~1
 
-      if (angle >= 45 && angle < 135) direction = "forward";
-      else if (angle >= 135 && angle < 225) direction = "left";
-      else if (angle >= 225 && angle < 315) direction = "backward";
-      else direction = "right";
+  const linear_x = Math.cos(angle) * maxSpeed * speedFactor;
+  const angular_z = -Math.sin(angle) * maxSpeed * speedFactor; // 注意方向可能需調整
 
-      socket.emit("control", { command: direction, client_time: new Date().toISOString() });
-      status.innerText = "控制：" + direction;
-      cooldown = true;
-      setTimeout(() => cooldown = false, 300);
-    });
+  socket.emit("analog_control", {
+    linear: linear_x.toFixed(2),
+    angular: angular_z.toFixed(2),
+    client_time: new Date().toISOString()
+  });
+
+  status.innerText = `速度：x=${linear_x.toFixed(2)}, z=${angular_z.toFixed(2)}`;
+});
 
     manager.on("end", () => {
       socket.emit("control", { command: "stop", client_time: new Date().toISOString() });
