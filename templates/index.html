@@ -32,15 +32,13 @@
     });
 
     manager.on('move', function(evt, data) {
-  const angle = data.angle.radian;  // 弧度（比 degree 更好算 sin/cos）
-  const distance = data.distance;   // 0 ~ 最大半徑（約 100~150）
-
-  // 根據距離調整速度倍率（最大速度 2.0）
+  const angle = data.angle.radian;
+  const distance = data.distance;
   const maxSpeed = 2.0;
-  const speedFactor = Math.min(distance / 100, 1.0);  // 0~1
+  const speedFactor = Math.min(distance / 100, 1.0);
 
   const linear_x = Math.cos(angle) * maxSpeed * speedFactor;
-  const angular_z = -Math.sin(angle) * maxSpeed * speedFactor; // 注意方向可能需調整
+  const angular_z = -Math.sin(angle) * maxSpeed * speedFactor;
 
   socket.emit("analog_control", {
     linear: linear_x.toFixed(2),
@@ -51,10 +49,15 @@
   status.innerText = `速度：x=${linear_x.toFixed(2)}, z=${angular_z.toFixed(2)}`;
 });
 
-    manager.on("end", () => {
-      socket.emit("control", { command: "stop", client_time: new Date().toISOString() });
-      status.innerText = "控制：停止";
-    });
+manager.on("end", () => {
+  socket.emit("analog_control", {
+    linear: 0.0,
+    angular: 0.0,
+    client_time: new Date().toISOString()
+  });
+  status.innerText = "控制：停止";
+});
+
   </script>
 </body>
 </html>
