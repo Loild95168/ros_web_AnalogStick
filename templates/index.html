@@ -1,76 +1,48 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>小烏龜搖桿控制</title>
-  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
-  <style>
-    body {
-      text-align: center;
-      font-family: sans-serif;
-      margin-top: 40px;
-    }
-    #joystickZone {
-      width: 300px;
-      height: 300px;
-      margin: auto;
-      background: #e0e0e0;
-      border-radius: 50%;
-      position: relative;
-    }
-  </style>
-</head>
-<body>
-  <h2>🐢 小烏龜搖桿控制</h2>
-  <div id="joystickZone"></div>
-  <p id="status">等待操作</p>
+let lastEmitTime = 0;
+const throttleInterval = 100;
+const maxSpeed = 2.0;
 
-  <script>
-    const socket = io();
-    const zone = document.getElementById("joystickZone");
-    const status = document.getElementById("status");
+let lastLinear = 0.0;
+let lastAngular = 0.0;
+let joystickActive = false;
 
-    const manager = nipplejs.create({
-      zone: zone,
-      mode: "static",
-      position: { left: "50%", top: "50%" },
-      color: "blue"
-    });
+manager.on('move', function(evt, data) {
+  const now = Date.now();
+  if (now - lastEmitTime < throttleInterval) return;
+  lastEmitTime = now;
 
-    let lastEmitTime = 0;
-    const throttleInterval = 100;
-    const maxSpeed = 2.0;
+  const angle = data.angle.radian;
+  const distance = data.distance;
+  const speedFactor = Math.min(distance / 100, 1.0);
 
-    manager.on('move', function(evt, data) {
-      const now = Date.now();
-      if (now - lastEmitTime < throttleInterval) return;
-      lastEmitTime = now;
+  lastLinear = Math.sin(angle) * maxSpeed * speedFactor;
+  lastAngular = -Math.cos(angle) * maxSpeed * speedFactor;
+  joystickActive = true;
 
-      const angle = data.angle.radian;
-      const distance = data.distance;
-      const speedFactor = Math.min(distance / 100, 1.0);
+  sendAnalogControl();
+});
 
-      const linear_x = Math.sin(angle) * maxSpeed * speedFactor;
-      const angular_z = -Math.cos(angle) * maxSpeed * speedFactor;
+manager.on("end", () => {
+  lastLinear = 0.0;
+  lastAngular = 0.0;
+  joystickActive = false;
+  sendAnalogControl();
+  status.innerText = "🛑 停止";
+});
 
-      socket.emit("analog_control", {
-        linear: linear_x.toFixed(2),
-        angular: angular_z.toFixed(2),
-        client_time: new Date().toISOString()
-      });
+function sendAnalogControl() {
+  socket.emit("analog_control", {
+    linear: lastLinear.toFixed(2),
+    angular: lastAngular.toFixed(2),
+    client_time: new Date().toISOString()
+  });
 
-      status.innerText = `🚀 前進=${linear_x.toFixed(2)} 旋轉=${angular_z.toFixed(2)}`;
-    });
+  status.innerText = `🚀 前進=${lastLinear.toFixed(2)} 旋轉=${lastAngular.toFixed(2)}`;
+}
 
-    manager.on("end", () => {
-      socket.emit("analog_control", {
-        linear: 0.0,
-        angular: 0.0,
-        client_time: new Date().toISOString()
-      });
-      status.innerText = "🛑 停止";
-    });
-  </script>
-</body>
-</html>
+// 🔁 每 100ms 定時重送一次控制訊號
+setInterval(() => {
+  if (joystickActive) {
+    sendAnalogControl();
+  }
+}, 100);
