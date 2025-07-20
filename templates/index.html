@@ -1,4 +1,44 @@
-let lastEmitTime = 0;
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>小烏龜搖桿控制</title>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
+  <style>
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      margin-top: 40px;
+    }
+    #joystickZone {
+      width: 300px;
+      height: 300px;
+      margin: auto;
+      background: #e0e0e0;
+      border-radius: 50%;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <h2>🐢 小烏龜搖桿控制</h2>
+  <div id="joystickZone"></div>
+  <p id="status">等待操作</p>
+
+  <script>
+    const socket = io();
+    const zone = document.getElementById("joystickZone");
+    const status = document.getElementById("status");
+
+    const manager = nipplejs.create({
+      zone: zone,
+      mode: "static",
+      position: { left: "50%", top: "50%" },
+      color: "blue"
+    });
+
+    let lastEmitTime = 0;
 const throttleInterval = 100;
 const maxSpeed = 2.0;
 
@@ -46,3 +86,7 @@ setInterval(() => {
     sendAnalogControl();
   }
 }, 100);
+
+  </script>
+</body>
+</html>
