@@ -98,11 +98,11 @@
 
     const linearManager = nipplejs.create(Object.assign({
       zone: linearZone,
-      lockX: true
+      lockY: true
     }, joystickOptions));
     const angularManager = nipplejs.create(Object.assign({
       zone: angularZone,
-      lockY: true
+      lockX: true
     }, joystickOptions));
 
     let lastEmitTime = 0;
@@ -134,14 +134,23 @@
       updateStatus();
     }
 
+    const axisConfig = {
+      linear: { component: "y", multiplier: -1 },
+      angular: { component: "x", multiplier: -1 }
+    };
+
     function handleMove(type, data) {
       if (!data || !data.vector) return;
 
+      const config = axisConfig[type];
+      const componentValue = data.vector[config.component] || 0;
+      const scaled = componentValue * config.multiplier * maxSpeed;
+
       if (type === "linear") {
-        lastLinear = -data.vector.y * maxSpeed;
+        lastLinear = scaled;
         linearActive = true;
       } else {
-        lastAngular = -data.vector.x * maxSpeed;
+        lastAngular = scaled;
         angularActive = true;
       }
 
