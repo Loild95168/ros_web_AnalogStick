@@ -138,10 +138,10 @@
       if (!data || !data.vector) return;
 
       if (type === "linear") {
-        lastLinear = -data.vector.y * maxSpeed;
+        lastLinear = data.vector.y * maxSpeed;
         linearActive = true;
       } else {
-        lastAngular = data.vector.x * maxSpeed;
+        lastAngular = -data.vector.x * maxSpeed;
         angularActive = true;
       }
 
