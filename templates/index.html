@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>小烏龜搖桿控制</title>
+  <title>小烏龜雙搖桿控制</title>
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
   <style>
@@ -11,82 +11,179 @@
       font-family: sans-serif;
       margin-top: 40px;
     }
-    #joystickZone {
-      width: 300px;
-      height: 300px;
-      margin: auto;
-      background: #e0e0e0;
-      border-radius: 50%;
+    #joystickWrapper {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 40px;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+    .joystickColumn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      min-width: 240px;
+    }
+    .joystickZone {
+      background: linear-gradient(145deg, #f8f8f8, #d7d7d7);
+      border-radius: 40px;
       position: relative;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .verticalZone {
+      width: 120px;
+      height: 260px;
+    }
+    .horizontalZone {
+      width: 260px;
+      height: 120px;
+    }
+    .joystickLabel {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    .joystickHint {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    #readout {
+      margin-top: 12px;
+      font-size: 1.1rem;
+    }
+    #status {
+      margin-top: 30px;
+      font-size: 1.2rem;
     }
   </style>
 </head>
 <body>
-  <h2>🐢 小烏龜搖桿控制</h2>
-  <div id="joystickZone"></div>
+  <h2>🐢 小烏龜雙搖桿控制</h2>
+  <div id="joystickWrapper">
+    <div class="joystickColumn">
+      <div id="linearJoystick" class="joystickZone verticalZone"></div>
+      <div class="joystickLabel">線速度 (x)</div>
+      <div class="joystickHint">上/下：前進/後退</div>
+    </div>
+    <div class="joystickColumn">
+      <div id="angularJoystick" class="joystickZone horizontalZone"></div>
+      <div class="joystickLabel">角速度 (z)</div>
+      <div class="joystickHint">左/右：逆時針/順時針</div>
+    </div>
+  </div>
   <p id="status">等待操作</p>
+  <div id="readout">
+    <span id="linearReadout">線速度：0.00</span>
+    <span id="angularReadout" style="margin-left: 16px;">角速度：0.00</span>
+  </div>
 
   <script>
     const socket = io();
-    const zone = document.getElementById("joystickZone");
+    const linearZone = document.getElementById("linearJoystick");
+    const angularZone = document.getElementById("angularJoystick");
     const status = document.getElementById("status");
+    const linearReadout = document.getElementById("linearReadout");
+    const angularReadout = document.getElementById("angularReadout");
 
-    const manager = nipplejs.create({
-      zone: zone,
+    const joystickOptions = {
       mode: "static",
       position: { left: "50%", top: "50%" },
-      color: "blue"
-    });
+      color: "blue",
+      size: 120
+    };
+
+    const linearManager = nipplejs.create(Object.assign({
+      zone: linearZone,
+      lockX: true
+    }, joystickOptions));
+    const angularManager = nipplejs.create(Object.assign({
+      zone: angularZone,
+      lockY: true
+    }, joystickOptions));
 
     let lastEmitTime = 0;
-const throttleInterval = 100;
-const maxSpeed = 2.0;
+    const throttleInterval = 100;
+    const maxSpeed = 2.0;
 
-let lastLinear = 0.0;
-let lastAngular = 0.0;
-let joystickActive = false;
+    let lastLinear = 0.0;
+    let lastAngular = 0.0;
+    let linearActive = false;
+    let angularActive = false;
 
-manager.on('move', function(evt, data) {
-  const now = Date.now();
-  if (now - lastEmitTime < throttleInterval) return;
-  lastEmitTime = now;
+    function updateStatus() {
+      status.innerText = `🚀 前進=${lastLinear.toFixed(2)} 旋轉=${lastAngular.toFixed(2)}`;
+      linearReadout.innerText = `線速度：${lastLinear.toFixed(2)}`;
+      angularReadout.innerText = `角速度：${lastAngular.toFixed(2)}`;
+    }
 
-  const angle = data.angle.radian;
-  const distance = data.distance;
-  const speedFactor = Math.min(distance / 100, 1.0);
+    function sendAnalogControl(force = false) {
+      const now = Date.now();
+      if (!force && now - lastEmitTime < throttleInterval) return;
+      lastEmitTime = now;
 
-  lastLinear = Math.sin(angle) * maxSpeed * speedFactor;
-  lastAngular = -Math.cos(angle) * maxSpeed * speedFactor;
-  joystickActive = true;
+      socket.emit("analog_control", {
+        linear: lastLinear.toFixed(2),
+        angular: lastAngular.toFixed(2),
+        client_time: new Date().toISOString()
+      });
 
-  sendAnalogControl();
-});
+      updateStatus();
+    }
 
-manager.on("end", () => {
-  lastLinear = 0.0;
-  lastAngular = 0.0;
-  joystickActive = false;
-  sendAnalogControl();
-  status.innerText = "🛑 停止";
-});
+    const axisConfig = {
+      linear: { component: "y", multiplier: 1 },
+      angular: { component: "x", multiplier: -1 }
+    };
 
-function sendAnalogControl() {
-  socket.emit("analog_control", {
-    linear: lastLinear.toFixed(2),
-    angular: lastAngular.toFixed(2),
-    client_time: new Date().toISOString()
-  });
+    function handleMove(type, data) {
+      if (!data || !data.vector) return;
 
-  status.innerText = `🚀 前進=${lastLinear.toFixed(2)} 旋轉=${lastAngular.toFixed(2)}`;
-}
+      const config = axisConfig[type];
+      const componentValue = data.vector[config.component] || 0;
+      const scaled = componentValue * config.multiplier * maxSpeed;
 
-// 🔁 每 100ms 定時重送一次控制訊號
-setInterval(() => {
-  if (joystickActive) {
-    sendAnalogControl();
-  }
-}, 100);
+      if (type === "linear") {
+        lastLinear = scaled;
+        linearActive = true;
+      } else {
+        lastAngular = scaled;
+        angularActive = true;
+      }
 
+      sendAnalogControl();
+    }
+
+    function handleEnd(type) {
+      if (type === "linear") {
+        lastLinear = 0.0;
+        linearActive = false;
+      } else {
+        lastAngular = 0.0;
+        angularActive = false;
+      }
+
+      sendAnalogControl(true);
+
+      if (!linearActive && !angularActive) {
+        status.innerText = "🛑 停止";
+      }
+    }
+
+    linearManager.on("move", (evt, data) => handleMove("linear", data));
+    angularManager.on("move", (evt, data) => handleMove("angular", data));
+
+    linearManager.on("end", () => handleEnd("linear"));
+    angularManager.on("end", () => handleEnd("angular"));
+
+    setInterval(() => {
+      if (linearActive || angularActive) {
+        sendAnalogControl(true);
+      }
+    }, 100);
   </script>
 </body>
 </html>
