@@ -65,14 +65,14 @@
   <h2>🐢 小烏龜雙搖桿控制</h2>
   <div id="joystickWrapper">
     <div class="joystickColumn">
-      <div id="linearJoystick" class="joystickZone verticalZone"></div>
+      <div id="linearJoystick" class="joystickZone horizontalZone"></div>
       <div class="joystickLabel">線速度 (x)</div>
-      <div class="joystickHint">上/下：前進/後退</div>
+      <div class="joystickHint">左/右：前進/後退</div>
     </div>
     <div class="joystickColumn">
-      <div id="angularJoystick" class="joystickZone horizontalZone"></div>
+      <div id="angularJoystick" class="joystickZone verticalZone"></div>
       <div class="joystickLabel">角速度 (z)</div>
-      <div class="joystickHint">左/右：逆時針/順時針</div>
+      <div class="joystickHint">上/下：逆時針/順時針</div>
     </div>
   </div>
   <p id="status">等待操作</p>
@@ -98,11 +98,11 @@
 
     const linearManager = nipplejs.create(Object.assign({
       zone: linearZone,
-      lockX: true
+      lockY: true
     }, joystickOptions));
     const angularManager = nipplejs.create(Object.assign({
       zone: angularZone,
-      lockY: true
+      lockX: true
     }, joystickOptions));
 
     let lastEmitTime = 0;
@@ -135,8 +135,8 @@
     }
 
     const axisConfig = {
-      linear: { component: "y", multiplier: 1 },
-      angular: { component: "x", multiplier: -1 }
+      linear: { component: "x", multiplier: 1 },
+      angular: { component: "y", multiplier: -1 }
     };
 
     function handleMove(type, data) {
